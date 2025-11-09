@@ -1,0 +1,23 @@
+Production dependencies for the Streamlit UI (Frontend)
+
+Versions are pinned for stable deployment.
+
+Core UI framework
+
+streamlit==1.36.0
+
+HTTP client to call the Communication Router API
+
+requests==2.32.3
+
+Data manipulation and display for map/tables
+
+pandas==2.2.2
+
+Data validation (used by shared models)
+
+pydantic==2.8.2
+
+GCP client for reading from Firestore
+
+google-cloud-firestore==2.17.0

@@ -1,0 +1,13 @@
+testscripts/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+logs/
+*.log
+infrastructure/
+.env
+.env.local
+.env.*.local
+

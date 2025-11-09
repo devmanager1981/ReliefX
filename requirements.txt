@@ -1,0 +1,22 @@
+Production Dependencies for all Agent Services
+
+Pinning major versions for deployment stability (e.g., in Cloud Run)
+
+==============================================================================
+
+flask==3.0.3                       # Core web server for Cloud Run
+pydantic==2.7.1                    # Structured data validation (Critical security guardrail)
+python-dotenv==1.0.1               # Local environment management (for local testing)
+
+Google Cloud Dependencies
+
+google-cloud-firestore==2.15.0     # Database interaction
+google-cloud-pubsub==2.21.1        # Asynchronous message queue (Agent triggers)
+google-cloud-storage==2.16.0       # For Damage Agent to access GCS data (if applicable)
+google-genai==0.16.0               # For Logistics Agent (if using gemini-api Python client)
+
+Geospatial/Data Dependencies (For Damage Analysis)
+
+earthengine-api==0.1.416           # Google Earth Engine access (if used)
+
+=========================================

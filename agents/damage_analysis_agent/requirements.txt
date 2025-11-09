@@ -1,0 +1,24 @@
+Production dependencies for the Damage Analysis Agent (Phase 1)
+
+Versions are pinned for stable deployment.
+
+Core LLM Client (Gemini/Vertex AI)
+
+google-genai==0.7.2
+
+Core GCP services
+
+google-cloud-firestore==2.17.0
+google-cloud-pubsub==2.19.0
+
+Geospatial data processing
+
+earthengine-api==0.1.405
+
+Web server for the Cloud Run entrypoint
+
+Flask==3.0.3
+
+Data validation and schema
+
+pydantic==2.8.2
