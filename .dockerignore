@@ -1,0 +1,27 @@
+# Python artifacts
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE/editor configs
+.vscode/
+.DS_Store
+
+# Logs and temp files
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Infra and test scripts
+infrastructure/
+testscripts/
+
+# Git metadata
+.git/

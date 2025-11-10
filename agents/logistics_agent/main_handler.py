@@ -66,4 +66,4 @@ if __name__ == '__main__':
     # This block is for LOCAL DEVELOPMENT testing only (e.g., `python main_handler.py`)
     # In production (Cloud Run), a Gunicorn server is used as the entry point.
     print("--- Starting Logistics Agent in local development mode ---")
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8081)), debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)

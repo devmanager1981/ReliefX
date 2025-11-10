@@ -1,12 +1,18 @@
-Production dependencies for the Shared Clients & Models module
-
-Versions are pinned for stable deployment.
-
-Core GCP services
-
+google-genai==0.7.2
+google-cloud-firestore==2.17.0
+Flask==3.0.3
+Flask-CORS
+#Data validation and schema
+pydantic==2.8.2
+Flask==3.0.3
+#Data validation and schema
+pydantic==2.8.2
+#Core GCP services
 google-cloud-firestore==2.17.0
 google-cloud-pubsub==2.19.0
-
-Data validation and schema
-
-pydantic==2.8.2
+Geospatial data processing (for fetching AOI)
+earthengine-api==0.1.405
+gunicorn
+flask
+streamlit
+Flask-CORS

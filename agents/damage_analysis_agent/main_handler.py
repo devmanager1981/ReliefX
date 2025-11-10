@@ -24,14 +24,15 @@ def index():
     try:
         data = request.get_json()
         if not data or 'message' not in data:
-            raise ValueError("Invalid Pub/Sub message format.")
+            # Not a Pub/Sub push message format
+            raise ValueError("Invalid Pub/Sub message format or missing 'message'.")
 
         # Pub/Sub payload is base64 encoded in the 'data' field of the 'message' object
         pubsub_message = data['message']
         
         if 'data' not in pubsub_message:
             # Handles Pub/Sub keepalive or empty messages
-            print("Received Pub/Sub keepalive or empty message.")
+            print("Received Pub/Sub keepalive or empty message (no data field).")
             return 'OK', 204 # No Content
 
         # Decode the base64 data to get the JSON string sent by the Communication Agent
@@ -60,6 +61,11 @@ def index():
     if success:
         return 'Damage Analysis completed successfully', 200
     else:
-        # Internal failure logged, but message acknowledged to prevent infinite retries.
-        print(f"Damage analysis failed internally for {request_id}.")
-        return 'Analysis execution failed internally', 200
+        # Internal failure logged, but message is still acknowledged to prevent retry storm.
+        return 'Damage Analysis internal failure (acknowledged)', 200
+
+if __name__ == '__main__':
+    # This block is for LOCAL DEVELOPMENT testing only.
+    # In production (Cloud Run), Gunicorn is the entry point.
+    print("--- Starting Damage Agent locally for testing ---")
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

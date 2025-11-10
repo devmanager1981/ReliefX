@@ -1,19 +1,15 @@
-Production dependencies for the Logistics Agent (Phase 2)
-
-Versions are pinned for stable deployment.
-
-Core LLM Client (Gemini/Vertex AI)
-
 google-genai==0.7.2
-
-Core GCP services
-
 google-cloud-firestore==2.17.0
-
-Web server for the Cloud Run entrypoint
-
 Flask==3.0.3
-
-Data validation and schema
-
+#Data validation and schema
 pydantic==2.8.2
+Flask==3.0.3
+#Data validation and schema
+pydantic==2.8.2
+#Core GCP services
+google-cloud-firestore==2.17.0
+google-cloud-pubsub==2.19.0
+earthengine-api==0.1.405
+gunicorn
+streamlit
+Flask-CORS
