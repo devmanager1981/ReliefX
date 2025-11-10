@@ -1,80 +1,85 @@
-import json
-from datetime import datetime
-from uuid import uuid4
+import os
+import logging
+from flask import Flask, request, jsonify
 from pydantic import ValidationError
-from typing import Dict, Any
+from datetime import datetime
 
-# --- Import Shared Modules ---
-from shared.models import RescueRequest # Imports the now-fixed model
-from shared.clients.firestore_client import write_document
+# Shared components
+from shared.models import RescueRequest
 from shared.clients.pubsub_client import publish_message, TOPIC_ID_DAMAGE_ANALYSIS
-# Import GEE utility (MOCKED)
-from shared.clients.gee_utils import fetch_geospatial_stats 
+from shared.clients.firestore_client import write_document
 
-def initiate_rescue_request(region_name: str, event_name: str) -> str:
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# --- CONFIGURATION ---
+# Ensure these environment variables are set in your Cloud Run service
+PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+REQUEST_COLLECTION = os.getenv("FIRESTORE_REQUEST_COLLECTION", "RescueRequests")
+# TOPIC_ID_DAMAGE_ANALYSIS is imported from shared.clients.pubsub_client
+
+# Basic Flask app setup
+app = Flask(__name__)
+
+@app.route("/", methods=["GET"])
+def health_check():
     """
-    Initiates the multi-agent workflow for a new rescue request.
-
-    This is the first step in the production pipeline.
-    1. Creates a unique Request ID.
-    2. Fetches the AOI (now mocked to guarantee success).
-    3. Creates and saves the initial RescueRequest document to Firestore.
-    4. Triggers the Damage Analysis Agent (Phase 1) via Pub/Sub.
+    Standard health check endpoint for Cloud Run.
     """
-    # 1. Generate a unique ID for this request
-    request_id = str(uuid4())
-    print(f"Initiating new workflow. Request ID: {request_id}")
+    return "ReliefX Communication Agent is running!", 200
 
-    # 2. Fetch the AOI and Stats (Using the MOCKED function)
-    # NOTE: We fetch the full stats, but ONLY the AOI is stored in RescueRequest.
-    gee_stats = fetch_geospatial_stats(region_name)
-    # Extract the necessary GeoJSON structure from the stats
-    aoi_geojson_layer = gee_stats.get("aoi_geojson_layer", {})
-    
-    # Ensure the AOI is serialized correctly for storage in the RescueRequest model
-    try:
-        # Converts the dictionary received from the MOCKED gee_utils function into a JSON string
-        aoi_geojson_str = json.dumps(aoi_geojson_layer)
-        print("GEE Analysis (MOCKED) completed by Comm Router. AOI data is ready for storage.")
-    except Exception as e:
-        # Fallback in case serialization fails (shouldn't happen with the mock)
-        print(f"CRITICAL ERROR: Failed to serialize MOCKED AOI GeoJSON: {e}")
-        aoi_geojson_str = json.dumps({"type": "FeatureCollection", "features": []})
+@app.route("/rescue-request", methods=["POST"])
+def receive_rescue_request():
+    """
+    Receives a new rescue request, validates it, writes to Firestore,
+    and publishes a message to trigger damage analysis.
+    """
+    if not request.is_json:
+        logger.error("Request must be JSON")
+        return jsonify({"error": "Request must be JSON"}), 400
 
-    # 3. Create and save the initial RescueRequest
     try:
-        # IMPORTANT: Only pass the FIVE fields required by the corrected RescueRequest model.
-        rescue_request = RescueRequest(
-            request_id=request_id,
-            region_name=region_name,
-            event_name=event_name,
-            timestamp=datetime.now().isoformat(),
-            aoi_geojson=aoi_geojson_str  # Store the safe, serialized AOI
-        )
+        # Validate incoming JSON against Pydantic model
+        # The timestamp and status will be set by the agent, not the client
+        request_data = request.get_json()
         
-        write_document("RescueRequests", request_id, rescue_request.model_dump())
-        print(f"Rescue Request saved to Firestore: RescueRequests/{request_id}")
+        # Add server-side metadata before validation or Pub/Sub
+        request_data["timestamp"] = datetime.now().isoformat()
+        request_data["status"] = "RECEIVED" # Initial status
+        
+        rescue_request = RescueRequest(**request_data)
+        logger.info(f"Received and validated RescueRequest: {rescue_request.request_id}")
+
+        # 1. Write to Firestore
+        write_document(REQUEST_COLLECTION, rescue_request.request_id, rescue_request.model_dump())
+        logger.info(f"RescueRequest {rescue_request.request_id} written to Firestore.")
+
+        # 2. Publish message to Pub/Sub to trigger Damage Analysis Agent
+        pubsub_payload = {"request_id": rescue_request.request_id}
+        publish_message(TOPIC_ID_DAMAGE_ANALYSIS, pubsub_payload)
+        logger.info(f"Message published to {TOPIC_ID_DAMAGE_ANALYSIS} for request ID: {rescue_request.request_id}")
+
+        return jsonify({
+            "status": "success",
+            "message": "Rescue request received and processing initiated.",
+            "request_id": rescue_request.request_id
+        }), 202 # 202 Accepted, as processing is asynchronous
 
     except ValidationError as e:
-        print(f"CRITICAL ERROR: Pydantic validation failed for RescueRequest. This likely means the model definition in models.py is wrong or missing a field: {e}")
-        # Re-raise to signal a fatal error back to the HTTP handler
-        raise
+        logger.error(f"Validation error for incoming request: {e.errors()}")
+        return jsonify({"error": "Invalid request payload", "details": e.errors()}), 400
     except Exception as e:
-        print(f"CRITICAL ERROR: Failed to save RescueRequest to Firestore: {e}")
-        # Re-raise to signal a fatal error back to the HTTP handler
-        raise
+        logger.exception(f"An unexpected error occurred in receive_rescue_request: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
-    # 4. Trigger the Damage Analysis Agent (Phase 1) via Pub/Sub
-    try:
-        publish_message(
-            TOPIC_ID_DAMAGE_ANALYSIS, 
-            {"request_id": request_id}
-        )
-        print(f"Damage Analysis Agent (Phase 1) triggered via Pub/Sub topic: {TOPIC_ID_DAMAGE_ANALYSIS}")
-    except Exception as e:
-        print(f"ERROR: Failed to publish Pub/Sub message for Damage Analysis: {e}")
-        # Since the request is already saved, we must re-raise the exception 
-        # so the handler can return an appropriate error to the caller.
-        raise
-        
-    return request_id
+if __name__ == "__main__":
+    # In a production Cloud Run environment, gunicorn would typically manage this.
+    # This block is mostly for local testing.
+    if not PROJECT_ID:
+        logger.critical("GCP_PROJECT_ID environment variable not set. Exiting.")
+        exit(1)
+    
+    # Cloud Run provides the PORT env var
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False) # debug=False for prod-like testing
