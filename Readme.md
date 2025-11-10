@@ -2,6 +2,8 @@ ReliefX: AI-Driven Disaster Response Planning
 
 ReliefX is a multi-agent system designed to accelerate disaster relief logistics by integrating geospatial data analysis with generative AI reasoning. The system automatically processes pre- and post-event satellite imagery to identify damage and then generates an optimal resource deployment plan based on those findings.
 
+This has been developed to showcase  the capabilities of Google cloud run as part of #cloudrunhackathon 
+
 1. Architecture and Workflow
 
 The ReliefX system operates as an asynchronous pipeline orchestrated by Google Cloud services.
