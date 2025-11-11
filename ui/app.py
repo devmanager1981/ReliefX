@@ -21,7 +21,7 @@ except ImportError:
 # --- PRODUCTION CONFIGURATION ---
 # Load configuration from environment variables set in Cloud Run
 # Ensure this is the correct URL for your Comm Router deployment
-COMM_ROUTER_URL = os.getenv("COMM_ROUTER_URL", "https://comm-router-agent-438247172781.europe-west1.run.app") # Fallback for local testing
+COMM_ROUTER_URL = os.getenv("COMM_ROUTER_URL", "httpsYOUR-DEPLOYMENT-URL") # Fallback for local testing
 PROJECT_ID = os.getenv("GCP_PROJECT_ID", "reliefmesh-hackathon")
 
 # Define the approved regions for analysis (Security Guardrail)
